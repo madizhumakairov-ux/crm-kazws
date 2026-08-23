@@ -9,7 +9,7 @@ const router = express.Router();
 // Register
 router.post('/register', (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, role } = req.body;
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Все поля обязательны' });
     }
@@ -19,11 +19,12 @@ router.post('/register', (req, res) => {
       return res.status(400).json({ error: 'Пользователь уже существует' });
     }
 
+    const userRole = (role === 'admin') ? 'admin' : 'user';
     const hashedPassword = bcrypt.hashSync(password, 10);
-    const result = db.prepare('INSERT INTO users (username, email, password) VALUES (?, ?, ?)').run(username, email, hashedPassword);
+    const result = db.prepare('INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)').run(username, email, hashedPassword, userRole);
 
-    const token = jwt.sign({ id: result.lastInsertRowid, username, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: result.lastInsertRowid, username, email, role: 'user' } });
+    const token = jwt.sign({ id: result.lastInsertRowid, username, role: userRole }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: { id: result.lastInsertRowid, username, email, role: userRole } });
   } catch (err) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
@@ -61,6 +62,55 @@ router.get('/me', authMiddleware, (req, res) => {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
     res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Get all users (admin only)
+router.get('/users', authMiddleware, (req, res) => {
+  try {
+    const users = db.prepare('SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC').all();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Update user role (admin only)
+router.put('/users/:id', authMiddleware, (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Только администратор может менять роли' });
+    }
+    const { role } = req.body;
+    if (!role || !['admin', 'user'].includes(role)) {
+      return res.status(400).json({ error: 'Неверная роль' });
+    }
+    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
+    if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+
+    db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, req.params.id);
+    res.json({ message: 'Роль обновлена' });
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Delete user (admin only)
+router.delete('/users/:id', authMiddleware, (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Только администратор может удалять пользователей' });
+    }
+    if (parseInt(req.params.id) === req.user.id) {
+      return res.status(400).json({ error: 'Нельзя удалить себя' });
+    }
+    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
+    if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
+
+    db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+    res.json({ message: 'Пользователь удалён' });
   } catch (err) {
     res.status(500).json({ error: 'Ошибка сервера' });
   }

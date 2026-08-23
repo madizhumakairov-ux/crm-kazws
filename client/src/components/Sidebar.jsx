@@ -9,6 +9,7 @@ const navItems = [
   { path: '/tasks', label: 'Задачи', icon: '✅' },
   { path: '/interactions', label: 'Взаимодействия', icon: '💬' },
   { path: '/reports', label: 'Отчёты', icon: '📈' },
+  { path: '/users', label: 'Команда', icon: '👤' },
 ];
 
 export default function Sidebar() {
