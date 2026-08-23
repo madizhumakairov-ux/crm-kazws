@@ -1,0 +1,16 @@
+{
+  "name": "crm-kazws",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "cd server && node index.js",
+    "build": "cd client && npm install && npm run build",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && node index.js",
+    "client": "cd client && npm run dev",
+    "seed": "cd server && node seed.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
