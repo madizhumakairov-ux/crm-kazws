@@ -50,7 +50,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     value REAL DEFAULT 0,
-    stage TEXT DEFAULT 'new' CHECK(stage IN ('new', 'qualified', 'proposal', 'negotiation', 'won', 'lost')),
+    stage TEXT DEFAULT 'new',
     contact_id INTEGER,
     company_id INTEGER,
     notes TEXT,
@@ -91,6 +91,25 @@ db.exec(`
     FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL,
     FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE SET NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL CHECK(entity_type IN ('deal', 'contact', 'company')),
+    entity_id INTEGER NOT NULL,
+    user_id INTEGER,
+    text TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS pipeline_stages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    color TEXT DEFAULT '#3B82F6',
+    position INTEGER NOT NULL,
+    is_default INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
 

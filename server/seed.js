@@ -5,12 +5,14 @@ console.log('🌱 Seeding database for KAZWS CRM...');
 
 // Clear existing data
 db.exec(`
+  DELETE FROM comments;
   DELETE FROM interactions;
   DELETE FROM tasks;
   DELETE FROM deals;
   DELETE FROM contacts;
   DELETE FROM companies;
   DELETE FROM users;
+  DELETE FROM pipeline_stages;
 `);
 
 // Create admin user
@@ -118,10 +120,41 @@ for (const i of interactions) {
   insertInteraction.run(i.type, i.subject, i.description, i.contact_id, i.deal_id, i.user_id, i.date);
 }
 
+// Create pipeline stages
+const stages = [
+  { name: 'new', color: '#3B82F6', position: 1, is_default: 1 },
+  { name: 'qualified', color: '#8B5CF6', position: 2, is_default: 0 },
+  { name: 'proposal', color: '#EAB308', position: 3, is_default: 0 },
+  { name: 'negotiation', color: '#F97316', position: 4, is_default: 0 },
+  { name: 'won', color: '#22C55E', position: 5, is_default: 0 },
+  { name: 'lost', color: '#EF4444', position: 6, is_default: 0 },
+];
+
+const insertStage = db.prepare('INSERT INTO pipeline_stages (name, color, position, is_default) VALUES (?, ?, ?, ?)');
+for (const s of stages) {
+  insertStage.run(s.name, s.color, s.position, s.is_default);
+}
+
+// Create sample comments
+const comments = [
+  { entity_type: 'deal', entity_id: dealIds[0], user_id: 1, text: 'Заказчик заинтересован в модульной системе. Нужно подготовить варианты комплектации.' },
+  { entity_type: 'deal', entity_id: dealIds[0], user_id: 2, text: 'Провели встречу, обсудили сроки поставки. Клиент хочет запуск до конца года.' },
+  { entity_type: 'deal', entity_id: dealIds[1], user_id: 1, text: 'Отправили КП на ливневую канализацию. Ждём обратную связь.' },
+  { entity_type: 'deal', entity_id: dealIds[4], user_id: 2, text: 'Первичный звонок с экологом НПЗ. Требуются промышленные очистные с предочисткой.' },
+  { entity_type: 'deal', entity_id: dealIds[6], user_id: 1, text: 'ГОК готов к переговорам по цене при объёме от 3 установок.' },
+];
+
+const insertComment = db.prepare('INSERT INTO comments (entity_type, entity_id, user_id, text) VALUES (?, ?, ?, ?)');
+for (const c of comments) {
+  insertComment.run(c.entity_type, c.entity_id, c.user_id, c.text);
+}
+
 console.log('✅ Seed data inserted successfully!');
 console.log(`   - ${companies.length} companies (meat plant, quarry, roads, housing, oil, agriculture, construction, water utility)`);
 console.log(`   - ${contacts.length} contacts`);
 console.log(`   - ${deals.length} deals (wastewater treatment equipment)`);
 console.log(`   - ${tasks.length} tasks`);
 console.log(`   - ${interactions.length} interactions`);
+console.log(`   - ${stages.length} pipeline stages`);
+console.log(`   - ${comments.length} comments`);
 console.log('   - 2 users (admin/admin123, manager/user123)');

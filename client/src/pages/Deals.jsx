@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import Modal from '../components/Modal';
 import KanbanBoard from '../components/KanbanBoard';
 
 export default function Deals() {
+  const navigate = useNavigate();
   const [deals, setDeals] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [stages, setStages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('kanban');
   const [showModal, setShowModal] = useState(false);
@@ -17,6 +20,7 @@ export default function Deals() {
     loadDeals();
     loadContacts();
     loadCompanies();
+    loadStages();
   }, []);
 
   const loadDeals = async () => {
@@ -45,6 +49,15 @@ export default function Deals() {
       setCompanies(res.data);
     } catch (err) {
       console.error('Failed to load companies:', err);
+    }
+  };
+
+  const loadStages = async () => {
+    try {
+      const res = await api.get('/stages');
+      setStages(res.data);
+    } catch (err) {
+      console.error('Failed to load stages:', err);
     }
   };
 
@@ -114,13 +127,14 @@ export default function Deals() {
     return `${value} ₸`;
   };
 
-  const stageLabels = {
-    new: 'Новые',
-    qualified: 'Квалифицированные',
-    proposal: 'Предложение',
-    negotiation: 'Переговоры',
-    won: 'Выигранные',
-    lost: 'Проигранные',
+  const getStageLabel = (stageName) => {
+    const stage = stages.find((s) => s.name === stageName);
+    return stage ? stage.name : stageName;
+  };
+
+  const getStageColor = (stageName) => {
+    const stage = stages.find((s) => s.name === stageName);
+    return stage ? stage.color : '#6B7280';
   };
 
   return (
@@ -155,7 +169,7 @@ export default function Deals() {
       {loading ? (
         <div className="text-center py-8 text-dark-400">Загрузка...</div>
       ) : view === 'kanban' ? (
-        <KanbanBoard deals={deals} onStageChange={handleStageChange} />
+        <KanbanBoard deals={deals} onStageChange={handleStageChange} onRefresh={loadDeals} />
       ) : (
         <div className="card overflow-hidden p-0">
           <div className="overflow-x-auto">
@@ -173,11 +187,21 @@ export default function Deals() {
               <tbody>
                 {deals.map((deal) => (
                   <tr key={deal.id} className="border-b border-dark-700/50 hover:bg-dark-800/50">
-                    <td className="p-4 text-dark-100 font-medium">{deal.title}</td>
+                    <td className="p-4">
+                      <button
+                        onClick={() => navigate(`/deals/${deal.id}`)}
+                        className="text-dark-100 font-medium hover:text-primary-400 transition-colors text-left"
+                      >
+                        {deal.title}
+                      </button>
+                    </td>
                     <td className="p-4 text-primary-400 font-semibold">{formatValue(deal.value)}</td>
                     <td className="p-4">
-                      <span className="text-xs bg-dark-700 text-dark-300 px-2 py-1 rounded-full">
-                        {stageLabels[deal.stage]}
+                      <span
+                        className="text-xs text-white px-2 py-1 rounded-full"
+                        style={{ backgroundColor: getStageColor(deal.stage) }}
+                      >
+                        {getStageLabel(deal.stage)}
                       </span>
                     </td>
                     <td className="p-4 text-dark-300 text-sm">{deal.contact_name || '—'}</td>
@@ -208,8 +232,8 @@ export default function Deals() {
             <div>
               <label className="block text-sm font-medium text-dark-300 mb-2">Этап</label>
               <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })} className="input-field">
-                {Object.entries(stageLabels).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {stages.map((s) => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
                 ))}
               </select>
             </div>

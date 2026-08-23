@@ -11,6 +11,7 @@ import Tasks from './pages/Tasks';
 import Interactions from './pages/Interactions';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
+import DealDetail from './pages/DealDetail';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="contacts" element={<Contacts />} />
         <Route path="companies" element={<Companies />} />
         <Route path="deals" element={<Deals />} />
+        <Route path="deals/:id" element={<DealDetail />} />
         <Route path="tasks" element={<Tasks />} />
         <Route path="interactions" element={<Interactions />} />
         <Route path="reports" element={<Reports />} />
